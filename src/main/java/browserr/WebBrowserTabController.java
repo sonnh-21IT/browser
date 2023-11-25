@@ -123,7 +123,8 @@ public class WebBrowserTabController extends StackPane {
 			System.out.println("WebEngine exception occured" + error.toString());
 			checkForInternetConnection();
 		});
-		//Add listener to the WebEngine
+
+		//Thêm sự kiện lắng nghe đến WebEngine
 		browser.getLoadWorker().stateProperty().addListener((observable , oldState , newState) -> {
 			if (newState == State.SUCCEEDED) {
 				errorPane.setVisible(false);
@@ -140,7 +141,7 @@ public class WebBrowserTabController extends StackPane {
 		
 		//handle pop up windows
 		browser.setCreatePopupHandler(l -> webBrowserController.createAndAddNewTab().getWebView().getEngine());
-		//History
+		//Lịch sử
 		setHistory(browser.getHistory());
 		historyEntryList = getHistory().getEntries();
 		SimpleListProperty<Entry> list = new SimpleListProperty<>(historyEntryList);
@@ -207,50 +208,70 @@ public class WebBrowserTabController extends StackPane {
 
 		tab.setContextMenu(new WebBrowserTabContextMenu(this, webBrowserController));
 
-	}
-	public String getSearchEngineHomeUrl(String searchProvider) {
-		switch (searchProvider.toLowerCase()) {
-			case "bing":
-				return "http://www.bing.com";
-			case "duckduckgo":
-				return "https://duckduckgo.com";
-			case "yahoo":
-				return "https://search.yahoo.com";
-			default:
-				return "https://www.google.com";
-		}
-	}
+		//Duyệt web dựa trên search bar
+		browser.getLoadWorker().runningProperty().addListener((observable , oldValue , newValue) -> {
 
-	public String getSelectedEngineHomeUrl() {
-		return getSearchEngineHomeUrl( ( (RadioMenuItem) searchEngineGroup.getSelectedToggle() ).getText());
+			if (!newValue) // Nếu không chạy
+				searchBar.textProperty().unbind();
+			else
+				searchBar.textProperty().bind(browser.locationProperty());
+		});
+		searchBar.setOnAction(a -> loadWebSite(searchBar.getText()));
+		searchBar.focusedProperty().addListener((observable , oldValue , newValue) -> {
+			if (newValue)
+				Platform.runLater(() -> searchBar.selectAll());
+
+		});
+
+		//Duyệt web
+		goButton.setOnAction(searchBar.getOnAction());
+
+		homeButton.setOnAction(a -> reloadWebSite());
+
+		//Load lại trang
+		reloadButton.setOnAction(a -> reloadWebSite());
+
+		//Lui về trang sau
+		backwardButton.setOnAction(a -> goBack());
+		backwardButton.disableProperty().bind(getHistory().currentIndexProperty().isEqualTo(0));
+		backwardButton.setOnMouseReleased(m -> {
+			if (m.getButton() == MouseButton.MIDDLE) //Create and add it next to this tab
+				webBrowserController.getTabPane().getTabs().add(webBrowserController.getTabPane().getTabs().indexOf(tab) + 1,
+						webBrowserController.createNewTab(getHistory().getEntries().get(getHistory().getCurrentIndex() - 1).getUrl()).getTab());
+		});
+
+		//Tiến về trang trước
+		forwardButton.setOnAction(a -> goForward());
+		forwardButton.disableProperty().bind(getHistory().currentIndexProperty().greaterThanOrEqualTo(list.sizeProperty().subtract(1)));
+		forwardButton.setOnMouseReleased(m -> {
+			if (m.getButton() == MouseButton.MIDDLE) //Create and add it next to this tab
+				webBrowserController.getTabPane().getTabs().add(webBrowserController.getTabPane().getTabs().indexOf(tab) + 1,
+						webBrowserController.createNewTab(getHistory().getEntries().get(getHistory().getCurrentIndex() + 1).getUrl()).getTab());
+		});
+
+		loadWebSite(firstWebSite);
 	}
 
 	private void loadWebSite(String webSite) {
+
+		//Tìm kiếm nếu như có URL
 		String load = !new UrlValidator().isValid(webSite) ? null : webSite;
 
+		//Load
 		try {
 
-			String finalWebsiteFristPart = ( load != null ) ? load : getSelectedEngineHomeUrl();
+			//First Part
+			String finalWebsiteFristPart = ( load != null ) ? load : "https://www.google.com";
 
+			//Second Part
 			String finalWebsiteSecondPart = "";
 			if (searchBar.getText().isEmpty())
 				finalWebsiteSecondPart = "";
 			else {
-				switch ( ( (RadioMenuItem) searchEngineGroup.getSelectedToggle() ).getText()) {
-					case "bing":
-					case "duckduckgo":
-						finalWebsiteSecondPart = "//?q=" + URLEncoder.encode(searchBar.getText(), "UTF-8");
-						break;
-					case "yahoo": //I need to find a solution for this
-						finalWebsiteSecondPart = "//?q=" + URLEncoder.encode(searchBar.getText(), "UTF-8");
-						break;
-					default: //then google
-						finalWebsiteSecondPart = "//search?q=" + URLEncoder.encode(searchBar.getText(), "UTF-8");
-						break;
-				}
-
+				finalWebsiteSecondPart = "//search?q=" + URLEncoder.encode(searchBar.getText(), "UTF-8");
 			}
 
+			//Load trang web
 			browser.load(finalWebsiteFristPart + finalWebsiteSecondPart);
 		} catch (UnsupportedEncodingException ex) {
 			ex.printStackTrace();
@@ -259,7 +280,7 @@ public class WebBrowserTabController extends StackPane {
 	}
 
 	public void loadDefaultWebSite() {
-		browser.load(getSelectedEngineHomeUrl());
+		browser.load("https://www.google.com");
 	}
 	public void reloadWebSite() {
 		if (!getHistory().getEntries().isEmpty())
@@ -284,23 +305,20 @@ public class WebBrowserTabController extends StackPane {
 		return errorPane;
 	}
 
+	//Kiểm tra kết nối mạng
 	void checkForInternetConnection() {
-
 		//tryAgainIndicator
 		tryAgainIndicator.setVisible(true);
 
-		//Check for Internet connection
+		//Kiểm tra kết nối mạng
 		Thread thread = new Thread(() -> {
 			boolean hasInternet = InfoTool.isReachableByPing("www.google.com");
 			Platform.runLater(() -> {
-
-				//Visibility of error pane
+				//Hộp lỗi
 				errorPane.setVisible(!hasInternet);
 
-				//Visibility of Try Again Indicator
 				tryAgainIndicator.setVisible(false);
-
-				//Reload the Website if it has Internet
+				//Load lại web nếu như có mạng
 				if (hasInternet)
 					reloadWebSite();
 			});

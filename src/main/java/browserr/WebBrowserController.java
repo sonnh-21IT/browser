@@ -17,41 +17,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-/**
- * @author Electron Tech! , GOXR3PLUS STUDIO
- *
- */
 public class WebBrowserController extends StackPane {
-	
-	/** The logger. */
 	private final Logger logger = Logger.getLogger(getClass().getName());
 	
 	public static boolean MOVING_TITLES_ENABLED = true;
-	
-	//------------------------------------------------------------
-	
+
     @FXML
     private JFXTabPane tabPane;
-
     @FXML
     private JFXButton youtube;
-
-    @FXML
-    private JFXButton soundCloud;
     @FXML
     private JFXButton facebook;
     @FXML
-    private JFXButton printerest;
-    @FXML
-    private JFXButton twitter;
-    @FXML
-    private JFXButton linkedIn;
-    @FXML
-    private JFXButton dropBox;
-    @FXML
     private JFXButton gmail;
-    @FXML
-    private JFXButton googleDrive;
     @FXML
     private JFXButton googleMaps;
     @FXML
@@ -111,7 +89,7 @@ public class WebBrowserController extends StackPane {
 				createAndAddNewTab();
 
 			webBrowserTab.browser.load("about:blank");
-			java.net.CookieHandler.setDefault(new java.net.CookieManager());
+//			java.net.CookieHandler.setDefault(new java.net.CookieManager());
 
 		});
 
