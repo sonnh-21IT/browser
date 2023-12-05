@@ -89,7 +89,6 @@ public class WebBrowserController extends StackPane {
 				createAndAddNewTab();
 
 			webBrowserTab.browser.load("about:blank");
-//			java.net.CookieHandler.setDefault(new java.net.CookieManager());
 
 		});
 
@@ -118,7 +117,6 @@ public class WebBrowserController extends StackPane {
 		tabPane.getTabs().stream()
 				//filter
 				.filter(tab -> tabPane.getTabs().indexOf(tab) < start)
-				//Collect the all to a list
 				.collect(Collectors.toList()).forEach(this::removeTab);
 		
 	}

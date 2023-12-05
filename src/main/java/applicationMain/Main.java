@@ -32,7 +32,7 @@ public class Main extends Application {
 		root.setCenter(new WebBrowserController());
 
 		window = primaryStage;
-		window.setTitle("JavaFX Web Browser");
+		window.setTitle("Web Browser");
 		window.setWidth(getVisualScreenWidth() * 0.9);
 		window.setHeight(getVisualScreenHeight() * 0.9);
 		window.centerOnScreen();

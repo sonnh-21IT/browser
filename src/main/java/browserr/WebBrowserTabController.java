@@ -1,5 +1,12 @@
 package browserr;
 
+import com.itextpdf.html2pdf.ConverterProperties;
+import com.itextpdf.html2pdf.HtmlConverter;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Worker;
+import javafx.print.PrinterJob;
+import javafx.stage.StageStyle;
 import marquee.FXMarquee;
 import tools.InfoTool;
 import com.jfoenix.controls.JFXButton;
@@ -24,15 +31,17 @@ import javafx.scene.web.WebHistory;
 import javafx.scene.web.WebHistory.Entry;
 import javafx.scene.web.WebView;
 import org.apache.commons.validator.routines.UrlValidator;
+
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WebBrowserTabController extends StackPane {
-
-
 	private final Logger logger = Logger.getLogger(getClass().getName());
 	@FXML
 	private VBox errorPane;
@@ -51,9 +60,17 @@ public class WebBrowserTabController extends StackPane {
 	@FXML
 	private JFXButton homeButton;
 	@FXML
+	private JFXButton webHistory;
+	@FXML
 	private JFXButton zoomIn;
 	@FXML
 	private JFXButton zoomOut;
+	@FXML
+	private MenuItem printPage;
+	@FXML
+	private MenuItem findInPage;
+	@FXML
+	private MenuItem downloadPage;
 	@FXML
 	private TextField searchBar;
 	@FXML
@@ -147,7 +164,7 @@ public class WebBrowserTabController extends StackPane {
 		stack.setManaged(false);
 		stack.setVisible(false);
 		
-		// stack
+		// Stack
 		indicator.visibleProperty().addListener(l -> {
 			if (indicator.isVisible()) {
 				stack.setManaged(true);
@@ -205,17 +222,17 @@ public class WebBrowserTabController extends StackPane {
 		goButton.setOnAction(searchBar.getOnAction());
 
 		zoomIn.setOnAction(a -> {
-			if (countClicked <= 5) {
-				countClicked += 0.5;
-			}
+			countClicked += 0.25;
 			zoomInWebsite(countClicked);
 		});
 
 		zoomOut.setOnAction(a -> {
-			if (countClicked >= 1) {
-				countClicked -= 0.5;
-			}
+			countClicked -= 0.25;
 			zoomOutWebsite(countClicked);
+		});
+
+		webHistory.setOnAction(a -> {
+			displayHistory(historyEntryList);
 		});
 
 		homeButton.setOnAction(a -> reloadWebSite());
@@ -241,7 +258,65 @@ public class WebBrowserTabController extends StackPane {
 						webBrowserController.createNewTab(getHistory().getEntries().get(getHistory().getCurrentIndex() + 1).getUrl()).getTab());
 		});
 
+
+
+		//In trang web
+		// Note: Còn lỗi chưa in hoàn thiện
+		printPage.setOnAction(a -> {
+			int randomNumber = new Random().nextInt();
+			PrinterJob job = PrinterJob.createPrinterJob();
+			if (job != null) {
+				browser.print(job);
+				job.endJob();
+
+				// Lưu trang web dưới dạng PDF từ URL
+				try (FileOutputStream outputStream = new FileOutputStream("E:/NetworkProgramming/" + randomNumber + ".pdf")) {
+					URL url = new URL(browser.getLocation());
+					ConverterProperties converterProperties = new ConverterProperties();
+					HtmlConverter.convertToPdf(url.openStream(), outputStream, converterProperties);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+
+		// Tải trang web dưới dạng .html
+		downloadPage.setOnAction( ( printPage -> {
+			try {
+				URI u = new URI(getHistory().getEntries().get(getHistory().getCurrentIndex()).getUrl());
+				String new_ur = u.getHost() + u.getRawPath().replaceAll("/", ".") + "html";
+				FileOutputStream fos = new FileOutputStream("D:/" + new_ur, true);
+
+				InputStream in = u.toURL().openStream();
+				int c;
+				while ( ( c = in.read() ) != -1) {
+					fos.write(c);
+
+				}
+				in.close();
+				fos.close();
+				System.out.println("Download successfully!");
+			} catch (IOException | URISyntaxException e) {
+				System.out.println("exception occured" + e.getMessage());
+			}
+		} ));
+
 		loadWebSite(firstWebSite);
+	}
+
+	public void displayHistory(ObservableList<WebHistory.Entry> historyEntryList) {
+		ListView<String> webHistoryListView = new ListView<>();
+
+		for (WebHistory.Entry entry : historyEntryList) {
+			// Chuyển đổi thông tin cần thiết từ mỗi mục thành chuỗi
+			String entryString = entry.getTitle() + " - " + entry.getUrl();
+			webHistoryListView.getItems().add(entryString);
+		}
+
+		VBox webHistoryContainer = new VBox();
+		webHistoryContainer.getChildren().add(webHistoryListView);
+
+		borderPane.setRight(webHistoryContainer);
 	}
 
 	public void zoomInWebsite(double number) {
