@@ -1,10 +1,5 @@
 package browserr;
 
-import com.itextpdf.html2pdf.ConverterProperties;
-import com.itextpdf.html2pdf.HtmlConverter;
-import javafx.event.EventHandler;
-import javafx.print.PrinterJob;
-import javafx.scene.input.MouseEvent;
 import marquee.FXMarquee;
 import tools.InfoTool;
 import com.jfoenix.controls.JFXButton;
@@ -126,7 +121,7 @@ public class WebBrowserTabController extends StackPane {
                 String ggSearch = "https://www.google.com/search?q=";
                 String ggDotsCom = "https://www.google.com/";
                 String blank = "about:blank";
-                if (!url.contains(ggSearch) && !url.contains(ggDotsCom) && url.equals(blank)) {
+                if (!url.contains(ggSearch) && !url.contains(ggDotsCom) && !url.equals(blank)) {
                     saveHistory(url);
                 }
             } else if (newState == State.FAILED) {
@@ -451,43 +446,58 @@ public class WebBrowserTabController extends StackPane {
         }
     }
 
+    private boolean isOpenHistory = false;
+    private VBox webHistoryContainer = new VBox(); // Declare the VBox outside the method
+
     private void readHistory() {
-        ListView<String> webHistoryListView = new ListView<>();
+        if (isOpenHistory) {
+            // Hide the webHistoryContainer
+            webHistoryContainer.setVisible(false);
+            webHistoryContainer.setManaged(false); // Avoid occupying space when not visible
+        } else {
+            ListView<String> webHistoryListView = new ListView<>();
+            File file = new File("history.txt");
 
-        File file = new File("history.txt");
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            if (reader.readLine() != null) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
                     if (!line.equals("about:blank")) {
                         webHistoryListView.getItems().add(line);
                     }
                 }
-                VBox webHistoryContainer = new VBox();
-                webHistoryContainer.getChildren().add(webHistoryListView);
 
-                webHistoryListView.setOnMouseClicked(event -> {
-                    String selectedURL = webHistoryListView.getSelectionModel().getSelectedItem();
-                    if (selectedURL != null) {
-                        if (!selectedURL.equals("about:blank")) {
+                if (!webHistoryListView.getItems().isEmpty()) {
+                    // Show the webHistoryContainer
+                    webHistoryContainer.setVisible(true);
+                    webHistoryContainer.setManaged(true); // Allow occupying space
+
+                    webHistoryContainer.getChildren().setAll(webHistoryListView);
+
+                    webHistoryListView.setOnMouseClicked(event -> {
+                        String selectedURL = webHistoryListView.getSelectionModel().getSelectedItem();
+                        if (selectedURL != null && !selectedURL.equals("about:blank")) {
                             webBrowserController.createAndAddNewTab().getWebView().getEngine().load(selectedURL);
                         }
-                    }
-                });
+                    });
 
-                borderPane.setRight(webHistoryContainer);
-            }else {
-                ListView<String> blankListView = new ListView<>();
-                blankListView.getItems().add("List is empty");
-                VBox webHistoryContainer = new VBox();
-                webHistoryContainer.getChildren().add(webHistoryListView);
-
-                borderPane.setRight(blankListView);
+                    borderPane.setRight(webHistoryContainer);
+                } else {
+                    ListView<String> blankListView = new ListView<>();
+                    blankListView.getItems().add("List is empty");
+                    // Show the webHistoryContainer with the blankListView
+                    webHistoryContainer.setVisible(true);
+                    webHistoryContainer.setManaged(true); // Allow occupying space
+                    webHistoryContainer.getChildren().setAll(blankListView);
+                    borderPane.setRight(webHistoryContainer);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
+
+        // Toggle the isOpenHistory flag
+        isOpenHistory = !isOpenHistory;
     }
+
+
 }
